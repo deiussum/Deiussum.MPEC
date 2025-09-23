@@ -1,0 +1,36 @@
+# NOTE: This uses an environment variable to hold the discordWebHook URL
+# To set this up, open up the settings.json file of VS Code and add an 
+# entry for "rest-client.environmentVariables", then choose the environment
+# from the dropdown menu in the bottom right corner of the editor window. 
+
+@discordWebHook=https://discord.com/api/webhooks/1418569622260682845/q8HtUPDFXWw0k2xnNp9kUtCxXYB_z4r7f94y4tFf_86JuVBtSs2aM0YkppjR8UucJIK7
+
+### Send basic message
+
+POST {{discordWebHook}}
+Content-Type: application/json
+
+{
+    "content": "Hello, World!"
+}
+
+
+### Send message with embed
+
+POST {{discordWebHook}}
+Content-Type: application/json
+
+{
+    "embeds": [
+        {
+            "title": "🌟 New Comet Discovery: C/2025 R2"
+            , "description": "A new comet has been discovered!"
+            , "fields": [{
+                "name": "Discovery date",
+                "value": "2025-08-13",
+                "inline": true
+            }]
+            , "timestamp": "2025-09-19"
+         }
+    ]
+}
