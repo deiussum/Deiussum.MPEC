@@ -3,7 +3,7 @@
 # entry for "rest-client.environmentVariables", then choose the environment
 # from the dropdown menu in the bottom right corner of the editor window. 
 
-@discordWebHook=https://discord.com/api/webhooks/1418569622260682845/q8HtUPDFXWw0k2xnNp9kUtCxXYB_z4r7f94y4tFf_86JuVBtSs2aM0YkppjR8UucJIK7
+@discordWebHook=https://discord.com/api/webhooks/your-webhook-here
 
 ### Send basic message
 
