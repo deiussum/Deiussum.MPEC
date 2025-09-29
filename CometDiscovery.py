@@ -29,19 +29,26 @@ def load_known_comets() -> CometList:
 
     return knownComets
 
-def send_discord_notification(comet_data: Comet):
+def send_discord_notification(title: str, description: str, color, comet_data: Comet):
     discord = Discord()
     
     # Create Discord embed
     embed = {
-        "title": f"🌟 New Comet Discovery: {comet_data.designation}",
-        "description": "A new comet has been discovered!",
-        "color": 0x00FF00,
+        "title": title,
+        "description": description,
+        "color": color,
         "fields": [],
         "timestamp": datetime.now().isoformat(),
     }
     
     # Add fields if data is available
+    if comet_data.permid:
+        embed["fields"].append({
+            "name": "PermId",
+            "value": comet_data.permid,
+            "inline": True
+        })
+
     if comet_data.name:
         embed["fields"].append({
             "name": "Name",
@@ -60,34 +67,44 @@ def main():
     print(f"Checking for new comets at {datetime.now()}")
 
     load_dotenv()
-    
-    # Load previously known comets
-    known_comets = load_known_comets()
-    print(f"Loaded {len(known_comets.comets)} previously known comets")
-    
-    # Method 1: Use hardcoded test data (for initial testing)
-    recent_comets = get_recent_comets()
-    print(f"Found {len(recent_comets.comets)} recent comets")
-    
-    # Check for new discoveries
-    new_discoveries = CometList()
-    
-    for comet in recent_comets.comets:
-        matches = known_comets.findCometByDesignation(comet.designation)
 
-        if len(matches) == 0:
-            print(f"New discovery found: {comet.designation}")
-            new_discoveries.addComet(comet)
-            known_comets.addComet(comet)
+    cometList = CometList()
+
+    cometList.loadCsv(CSV_FILE)
+    print(f"Loaded {len(cometList.comets)} previously known comets")
+
+    cometList.loadRecentComets()
+    print(f"Found {len(cometList.added)} new comets")
+    print(f"Updated {len(cometList.updated)} comets")
+    print(f"Total of {len(cometList.comets)} comets")
+
+    for newDesignation in cometList.added:
+        newComets = cometList.findCometByDesignation(newDesignation)
+
+        if len(newComets) > 0:
+            newComet = newComets[0]
+
+            print(f"New discovery found: {newComet.designation}")
             
-            # Get detailed info and send notification
-            send_discord_notification(comet)
+            title = f"🌟 New Comet Discovery: {newComet.getFriendlyName()}"
+            description = "A new comet has been discovered!"
+            color = 0x00FF00
+            send_discord_notification(title, description, color, newComet)
+
+    for updatedDesignation in cometList.added:
+        updatedComets = cometList.findCometByDesignation(updatedDesignation)
+
+        if len(updatedComets) > 0:
+            updatedComet = updatedComets[0]
+            
+            title = f"🌟 Comet update: {newComet.getFriendlyName()}"
+            description = "A comet has been named or given a permanent id!"
+            color = 0x0000FF
+            send_discord_notification(title, description, color, updatedComet)
+
+
+    cometList.saveCsv(CSV_FILE)
     
-    # # Update the CSV with all current comets (including new ones)
-    if len(new_discoveries.comets) > 0:
-        known_comets.saveCsv(CSV_FILE)
-    
-    print(f"Processing complete. Found {len(new_discoveries.comets)} new discoveries.")
 
 if __name__ == "__main__":
     main()

@@ -7,6 +7,8 @@ from MinorPlanetaryCenter import DesignationIdentifierApi, DesignationBuilder
 
 class CometList:
     comets: List[Comet] = []
+    added: List[str] = []
+    updated: List[str] = []
 
     def loadCsv(self, filePath: str):
         if os.path.exists(filePath):
@@ -19,8 +21,9 @@ class CometList:
                         self.comets.append(Comet(row))
             except Exception as e:
                 print(f"Error reading CSV: {e}")
+
     def saveCsv(self, filePath: str):
-        fieldnames = ['designation', 'name']
+        fieldnames = ['designation', 'permid', 'name', 'discoverer']
         
         try:
             with open(filePath, 'w', newline='') as f:
@@ -35,24 +38,44 @@ class CometList:
     def loadRecentComets(self):
         designationBuilder = DesignationBuilder()
 
+        saved_designations = [ c.designation for c in self.comets ]
         previous_designations = designationBuilder.GetCometDesignationRange(datetime.now() - timedelta(days=15), 1, 5)
         current_designations = designationBuilder.GetCometDesignationRange(datetime.now(), 1, 5)
 
-        designations = previous_designations + current_designations
-        
+        designations = saved_designations + previous_designations + current_designations
+        unique_designations = list(dict.fromkeys(designations))
+
         designationApi = DesignationIdentifierApi()
 
-        data = designationApi.queryMultiple(designations)
+        data = designationApi.queryMultiple(unique_designations)
 
-        self.comets = []
+        if not self.comets:
+            self.comets = []
+
         for row in data:
-            if row.found == 1:
+            if row.found == 0:
+                continue
+
+            existingComets = self.findCometByDesignation(row.designation)
+
+            if existingComets and len(existingComets) > 0 :
+                existingComet = existingComets[0]
+
+                if existingComet.name != (row.name or '') or existingComet.permid != (row.permId or ''):
+                    print(f"updating {existingComet.permid} - {existingComet.name} to {row.permId} - {row.name}")
+
+                    existingComet.name = row.name
+                    existingComet.permid = row.permId
+                    self.updated.append(row.designation)
+            elif not existingComets or len(existingComets) == 0:
                 comet = Comet({
                     'designation': row.designation,
-                    'name': row.name
+                    'name': row.name,
+                    'permid': row.permId
                 })
-                #print(data[row])
+
                 self.comets.append(comet)
+                self.added.append(row.designation)
 
     def addComet(self, comet: Comet):
         self.comets.append(comet)
@@ -60,7 +83,6 @@ class CometList:
     def findCometByDesignation(self, designation: str) -> List[Comet]:
         matches = [ c for c in self.comets if c.designation == designation ]
         return matches
-
 
 
 if __name__ == '__main__':

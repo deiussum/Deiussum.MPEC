@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import List
 import requests
 import json
+import pandas as pd
 
 class DesignationInfo:
     found: bool
@@ -92,14 +93,40 @@ class DesignationIdentifierApi:
         return results
 
 
+class ObservationsApi:
+    baseUrl = 'https://data.minorplanetcenter.net/api/get-obs'
+
+    def query(self, designation: str) -> pd.DataFrame:
+        json = { 'desigs': [ designation ], 'output_format': [ 'ADES_DF' ] }
+        response = requests.get(self.baseUrl, json=json)
+        
+        response.raise_for_status()
+
+        data = pd.DataFrame(response.json()[0]['ADES_DF'])
+        return data
+            
+    def queryObs80(self, designation: str) -> str:
+        json = { 'desigs': [ designation ], 'output_format': [ 'OBS80' ] }
+        response = requests.get(self.baseUrl, json=json)
+        
+        response.raise_for_status()
+
+        data = response.json()[0]['OBS80']
+        return data
+
+
 
 if __name__ == "__main__":
-    designationApi = DesignationIdentifierApi()
+    # designationApi = DesignationIdentifierApi()
 
-    single = designationApi.querySingle("C/2025 R3")
-    multiple = designationApi.queryMultiple(["C/2025 R1", "C/2025 R2"])
+    # single = designationApi.querySingle('C/2025 R3')
+    # multiple = designationApi.queryMultiple(['C/2025 R1', 'C/2025 R2', '3I'])
 
-    print(json.dumps(single.toDict(), indent=2))
+    # print(json.dumps(single.toDict(), indent=2))
 
-    for row in multiple:
-        print(json.dumps(row.toDict(), indent=2))
+    # for row in multiple:
+    #     print(json.dumps(row.toDict(), indent=2))
+
+    obsApi = ObservationsApi()
+
+    print(obsApi.queryObs80('C/2025 A6'))
