@@ -1,7 +1,15 @@
 designation,permid,name,discoverer
 C/2025 A6,,,LEMMON
 C/2025 K1,,,ATLAS
-C/2025 N1,3I,ATLAS,ATLAS
 C/2025 R1,,,ATLAS
 C/2025 R2,,,SWAN
 C/2025 R3,,,PANSTARRS
+(3I),3I,ATLAS,
+
+designation,permid,name,discoverer,mag1davg,mag2davg,lastobs,lastupdate
+C/2025 A6,,,LEMMON,,,,
+C/2025 K1,,,ATLAS,,,,
+C/2025 R1,,,ATLAS,,,,
+C/2025 R2,,,SWAN,,,,
+C/2025 R3,,,PANSTARRS,,,,
+(3I),3I,ATLAS,,,,,

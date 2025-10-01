@@ -97,7 +97,9 @@ class ObservationsApi:
     baseUrl = 'https://data.minorplanetcenter.net/api/get-obs'
 
     def query(self, designation: str) -> pd.DataFrame:
-        json = { 'desigs': [ designation ], 'output_format': [ 'ADES_DF' ] }
+        cleanedDesignation = designation.removeprefix('(').removesuffix(')')
+
+        json = { 'desigs': [ cleanedDesignation ], 'output_format': [ 'ADES_DF' ] }
         response = requests.get(self.baseUrl, json=json)
         
         response.raise_for_status()
@@ -106,7 +108,9 @@ class ObservationsApi:
         return data
             
     def queryObs80(self, designation: str) -> str:
-        json = { 'desigs': [ designation ], 'output_format': [ 'OBS80' ] }
+        cleanedDesignation = designation.removeprefix('(').removesuffix(')')
+
+        json = { 'desigs': [ cleanedDesignation ], 'output_format': [ 'OBS80' ] }
         response = requests.get(self.baseUrl, json=json)
         
         response.raise_for_status()

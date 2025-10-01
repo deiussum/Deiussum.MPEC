@@ -78,30 +78,48 @@ def main():
     print(f"Updated {len(cometList.updated)} comets")
     print(f"Total of {len(cometList.comets)} comets")
 
-    for newDesignation in cometList.added:
-        newComets = cometList.findCometByDesignation(newDesignation)
+    for newComet in cometList.added:
+        print(f"New discovery found: {newComet.designation}")
+        
+        title = f"🌟 New Comet Discovery: {newComet.getFriendlyName()}"
+        description = "A new comet has been discovered!"
+        color = 0x00FF00
+        send_discord_notification(title, description, color, newComet)
 
-        if len(newComets) > 0:
-            newComet = newComets[0]
+    for updatedComet in cometList.added:
+        print(f"Updated comet: {updatedComet.designation} - PermId:{updatedComet.permid}, Name:{updatedComet.name}")
 
-            print(f"New discovery found: {newComet.designation}")
-            
-            title = f"🌟 New Comet Discovery: {newComet.getFriendlyName()}"
-            description = "A new comet has been discovered!"
-            color = 0x00FF00
-            send_discord_notification(title, description, color, newComet)
+        title = f"🌟 Comet update: {updatedComet.getFriendlyName()}"
+        description = "A comet has been named or given a permanent id!"
+        color = 0x0000FF
+        send_discord_notification(title, description, color, updatedComet)
 
-    for updatedDesignation in cometList.added:
-        updatedComets = cometList.findCometByDesignation(updatedDesignation)
+    # Update the observation data and check for comets reaching certain thresholds
+    cometList.updateObservationData()
 
-        if len(updatedComets) > 0:
-            updatedComet = updatedComets[0]
-            
-            title = f"🌟 Comet update: {newComet.getFriendlyName()}"
-            description = "A comet has been named or given a permanent id!"
-            color = 0x0000FF
-            send_discord_notification(title, description, color, updatedComet)
+    for comet in cometList.spectacular:
+        print(f"Spectacular comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
 
+        title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
+        description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and should be easily visible!"
+        color = 0xFFFF00
+        send_discord_notification(title, description, color, comet)
+
+    for comet in cometList.nakedeye:
+        print(f"Naked eye comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
+
+        title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
+        description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and may be nearly visible with the naked eye!"
+        color = 0xFFFF00
+        send_discord_notification(title, description, color, comet)
+
+    for comet in cometList.binoc:
+        print(f"Binocular comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
+
+        title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
+        description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and may be visible with binoculars."
+        color = 0xABAB00
+        send_discord_notification(title, description, color, comet)
 
     cometList.saveCsv(CSV_FILE)
     
