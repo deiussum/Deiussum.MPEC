@@ -1,7 +1,8 @@
 
 from datetime import datetime, timezone
 
-DATETIME_FORMAT='%Y-%m-%d %H:%M:%S'
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 
 class Comet:
     designation: str
@@ -12,8 +13,9 @@ class Comet:
     mag1davg: float
     lastobs: datetime
     lastupdate: datetime
+    archive: bool
 
-    def __init__(self, comet:dict):
+    def __init__(self, comet: dict):
         self.designation = comet['designation']
         self.permid = comet.get('permid', '')
         self.name = comet.get('name', '')
@@ -22,6 +24,7 @@ class Comet:
         self.mag1davg = self.getFloat(comet.get('mag1davg', None))
         self.lastobs = self.getDateTime(comet.get('lastobs', None))
         self.lastupdate = self.getDateTime(comet.get('lastupdate', None))
+        self.archive = comet.get('archive', False)
 
     def toDict(self) -> dict:
         return {
@@ -32,7 +35,8 @@ class Comet:
             'mag2davg': self.mag2davg,
             'mag1davg': self.mag1davg,
             'lastobs': self.lastobs.strftime(DATETIME_FORMAT),
-            'lastupdate': self.lastupdate.strftime(DATETIME_FORMAT)
+            'lastupdate': self.lastupdate.strftime(DATETIME_FORMAT),
+            'archive': self.archive
         }
 
     def getFriendlyName(self) -> str:
@@ -51,14 +55,13 @@ class Comet:
 
     def getDateTime(self, val) -> float:
         if val:
-            parsed= datetime.strptime(val, DATETIME_FORMAT)
+            parsed = datetime.strptime(val, DATETIME_FORMAT)
             if parsed:
                 return parsed.replace(tzinfo=timezone.utc)
         return None
-        
 
-if __name__== "__main__":
-    comet = Comet({ 'designation': 'C/2025 R2', 'name': 'SWAN25' })
+
+if __name__ == "__main__":
+    comet = Comet({'designation': 'C/2025 R2', 'name': 'SWAN25'})
     print(f"{comet.designation} ({comet.name})")
     print(comet.toDict())
-

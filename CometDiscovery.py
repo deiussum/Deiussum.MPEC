@@ -78,6 +78,9 @@ def summarize():
     }
 
     for comet in cometList.comets:
+        if comet.archive:
+            continue
+
         embed["fields"].append({
             "name": comet.getFriendlyName(),
             "value": f"Last observation: {comet.lastobs} at an average magnitude of {comet.mag1davg}",

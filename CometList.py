@@ -35,7 +35,7 @@ class CometList:
                 print(f"Error reading CSV: {e}")
 
     def saveCsv(self, filePath: str):
-        fieldnames = ['designation', 'permid', 'name', 'discoverer', 'mag1davg', 'mag2davg', 'lastobs', 'lastupdate']
+        fieldnames = ['designation', 'permid', 'name', 'discoverer', 'mag1davg', 'mag2davg', 'lastobs', 'lastupdate', 'archive']
         
         try:
             with open(filePath, 'w', newline='') as f:
