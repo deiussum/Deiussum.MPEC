@@ -61,8 +61,9 @@ def send_discord_comet_notification(title: str, description: str, color, comet_d
     except requests.RequestException as e:
         print(f"Error sending Discord notification: {e}")
 
-def summarize():
-    load_dotenv()
+
+def summarize(send: bool):
+    _ = load_dotenv()
 
     cometList = CometList()
     discord = Discord()
@@ -78,7 +79,7 @@ def summarize():
     }
 
     for comet in cometList.comets:
-        if comet.archive:
+        if comet.archive is True:
             continue
 
         embed["fields"].append({
@@ -87,7 +88,10 @@ def summarize():
             "inline": True
         })
 
-    discord.SendEmbed(embed)
+    if send:
+        discord.SendEmbed(embed)
+    else:
+        print(embed)
 
 def updateAndCheckNotifications():
     print(f"Checking for new comets at {datetime.now()}")
@@ -103,7 +107,7 @@ def updateAndCheckNotifications():
 
     for newComet in cometList.added:
         print(f"New discovery found: {newComet.designation}")
-        
+
         title = f"🌟 New Comet Discovery: {newComet.getFriendlyName()}"
         description = "A new comet has been discovered!"
         color = 0x00FF00
@@ -115,9 +119,13 @@ def updateAndCheckNotifications():
         title = f"🌟 Comet update: {updatedComet.getFriendlyName()}"
         description = "A comet has been named or given a permanent id!"
         color = 0x0000FF
-        send_discord_comet_notification(title, description, color, updatedComet)
+        send_discord_comet_notification(title,
+                                        description,
+                                        color,
+                                        updatedComet)
 
-    # Update the observation data and check for comets reaching certain thresholds
+    # Update the observation data and check for comets reaching certain
+    # thresholds
     cometList.updateObservationData()
 
     for comet in cometList.spectacular:
@@ -151,11 +159,12 @@ def main():
     parser = argparse.ArgumentParser('A script for checking on Comet data and sending notifications to a Discord channel')
 
     parser.add_argument('--summarize', action='store_true', help='If set, the output will be summarized')
+    parser.add_argument('--skipsend', action='store_true', help='If set skip sending to Discord')
 
     args = parser.parse_args()
 
     if args.summarize:
-        summarize()
+        summarize(not args.skipsend)
     else:
         updateAndCheckNotifications()
 

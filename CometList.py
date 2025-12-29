@@ -13,6 +13,7 @@ NAKED_EYE_MAGNITUDE=6
 SPECTACULAR_MAGNITUDE=2
 SUDDEN_INCREASE_MAGNITUDE=1.5
 
+
 class CometList:
     comets: List[Comet] = []
     added: List[Comet] = []
@@ -35,13 +36,22 @@ class CometList:
                 print(f"Error reading CSV: {e}")
 
     def saveCsv(self, filePath: str):
-        fieldnames = ['designation', 'permid', 'name', 'discoverer', 'mag1davg', 'mag2davg', 'lastobs', 'lastupdate', 'archive']
-        
+        fieldnames = ['designation',
+                      'permid',
+                      'name',
+                      'discoverer',
+                      'mag1davg',
+                      'mag2davg',
+                      'lastobs',
+                      'lastupdate',
+                      'archive'
+                      ]
+
         try:
             with open(filePath, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
-                
+
                 for comet in self.comets:
                     writer.writerow(comet.toDict())
         except Exception as e:
@@ -50,7 +60,7 @@ class CometList:
     def loadRecentComets(self):
         designationBuilder = DesignationBuilder()
 
-        saved_designations = [ c.designation for c in self.comets ]
+        saved_designations = [c.designation for c in self.comets]
         previous_designations = designationBuilder.GetCometDesignationRange(datetime.now() - timedelta(days=15), 1, 5)
         current_designations = designationBuilder.GetCometDesignationRange(datetime.now(), 1, 5)
 
@@ -70,7 +80,7 @@ class CometList:
 
             existingComets = self.findCometByDesignation(row.designation)
 
-            if existingComets and len(existingComets) > 0 :
+            if existingComets and len(existingComets) > 0:
                 existingComet = existingComets[0]
 
                 if existingComet.name != (row.name or '') or existingComet.permid != (row.permId or ''):
