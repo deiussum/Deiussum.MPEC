@@ -176,3 +176,6 @@ pyrightconfig.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 .vscode/
+
+# Output of Rss.py manual test
+test_feed.xml
