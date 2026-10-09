@@ -1,0 +1,11 @@
+[Unit]
+Description=Posts MPC updates on comets to a Discord channel and/or RSS feed
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=deiussum
+# Optional: put DISCORD_WEBHOOK_URL=... here instead of in run.sh
+EnvironmentFile=-/opt/discord-comets/.env
+ExecStart=/opt/discord-comets/run.sh

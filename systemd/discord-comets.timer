@@ -1,0 +1,10 @@
+[Unit]
+Description=Posts MPC comet updates to a Discord channel and/or RSS feed
+
+[Timer]
+OnCalendar=06:00
+AccuracySec=60s
+Persistent=true
+
+[Install]
+WantedBy=timers.target
