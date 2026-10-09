@@ -24,7 +24,7 @@ class Comet:
         self.mag1davg = self.getFloat(comet.get('mag1davg', None))
         self.lastobs = self.getDateTime(comet.get('lastobs', None))
         self.lastupdate = self.getDateTime(comet.get('lastupdate', None))
-        self.archive = comet.get('archive', False)
+        self.archive = self.getBool(comet.get('archive', False))
 
     def toDict(self) -> dict:
         return {
@@ -34,8 +34,8 @@ class Comet:
             'discoverer': self.discoverer,
             'mag2davg': self.mag2davg,
             'mag1davg': self.mag1davg,
-            'lastobs': self.lastobs.strftime(DATETIME_FORMAT),
-            'lastupdate': self.lastupdate.strftime(DATETIME_FORMAT),
+            'lastobs': self.formatDateTime(self.lastobs),
+            'lastupdate': self.formatDateTime(self.lastupdate),
             'archive': self.archive
         }
 
@@ -53,7 +53,18 @@ class Comet:
             return float(val)
         return None
 
-    def getDateTime(self, val) -> float:
+    def getBool(self, val) -> bool:
+        # Values loaded from CSV are strings, e.g. "True"/"False"
+        if isinstance(val, str):
+            return val.strip().lower() == 'true'
+        return bool(val)
+
+    def formatDateTime(self, val: datetime) -> str:
+        if val:
+            return val.strftime(DATETIME_FORMAT)
+        return ''
+
+    def getDateTime(self, val) -> datetime:
         if val:
             parsed = datetime.strptime(val, DATETIME_FORMAT)
             if parsed:

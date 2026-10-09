@@ -15,13 +15,22 @@ SUDDEN_INCREASE_MAGNITUDE=1.5
 
 
 class CometList:
-    comets: List[Comet] = []
-    added: List[Comet] = []
-    updated: List[Comet] = []
-    binoc: List[Comet] = []
-    nakedeye: List[Comet] = []
-    spectacular: List[Comet] = []
-    suddenincrease: List[Comet] = []
+    comets: List[Comet]
+    added: List[Comet]
+    updated: List[Comet]
+    binoc: List[Comet]
+    nakedeye: List[Comet]
+    spectacular: List[Comet]
+    suddenincrease: List[Comet]
+
+    def __init__(self):
+        self.comets = []
+        self.added = []
+        self.updated = []
+        self.binoc = []
+        self.nakedeye = []
+        self.spectacular = []
+        self.suddenincrease = []
 
     def loadCsv(self, filePath: str):
         if os.path.exists(filePath):
@@ -86,7 +95,7 @@ class CometList:
                 if existingComet.name != (row.name or '') or existingComet.permid != (row.permId or ''):
                     existingComet.name = row.name
                     existingComet.permid = row.permId
-                    existingComet.lastupdate = datetime.now()
+                    existingComet.lastupdate = datetime.now(timezone.utc)
 
                     self.updated.append(existingComet)
             elif not existingComets or len(existingComets) == 0:
@@ -95,9 +104,9 @@ class CometList:
                     'name': row.name,
                     'permid': row.permId,
                     'mag2davg': None,
-                    'mag1davg': None,
-                    'lastupdated': datetime.now(timezone.utc)
+                    'mag1davg': None
                 })
+                comet.lastupdate = datetime.now(timezone.utc)
 
                 self.comets.append(comet)
                 self.added.append(comet)
@@ -135,14 +144,15 @@ class CometList:
 
                 if comet.mag2davg:
                     mag2delta = comet.mag2davg - twoDayAvg
+
+                    # Only a change from a prior average counts as a sudden increase
+                    if mag2delta >= SUDDEN_INCREASE_MAGNITUDE:
+                        self.suddenincrease.append(comet)
                 else:
                     mag2delta = twoDayAvg
 
                 if mag2delta != 0:
                     comet.mag2davg = twoDayAvg
-
-                if mag2delta >= SUDDEN_INCREASE_MAGNITUDE:
-                    self.suddenincrease.append(comet)
 
                 oneDayData = obs[obs['obstime'] >= oneDay].copy()
                 oneDayData['mag'] = pd.to_numeric(oneDayData['mag'], errors='coerce')
@@ -158,7 +168,7 @@ class CometList:
                     comet.mag1davg = oneDayAvg
 
                 if mag1delta != 0 or mag2delta != 0:
-                    comet.lastupdate = datetime.now()
+                    comet.lastupdate = datetime.now(timezone.utc)
 
                 # Pause before the next comet to avoid spamming the API
                 time.sleep(0.5)
@@ -168,7 +178,7 @@ class CometList:
 
     def checkMagnitudes(self, comet: Comet, priorMagnitude: float, newMagnitude: float):
         if self.checkThreshold(SPECTACULAR_MAGNITUDE, priorMagnitude, newMagnitude):
-            self.binoc.append(comet)
+            self.spectacular.append(comet)
         elif self.checkThreshold(NAKED_EYE_MAGNITUDE, priorMagnitude, newMagnitude):
             self.nakedeye.append(comet)
         elif self.checkThreshold(BINOC_MAGNITUDE, priorMagnitude, newMagnitude):

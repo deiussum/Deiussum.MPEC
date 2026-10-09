@@ -113,7 +113,7 @@ def updateAndCheckNotifications():
         color = 0x00FF00
         send_discord_comet_notification(title, description, color, newComet)
 
-    for updatedComet in cometList.added:
+    for updatedComet in cometList.updated:
         print(f"Updated comet: {updatedComet.designation} - PermId:{updatedComet.permid}, Name:{updatedComet.name}")
 
         title = f"🌟 Comet update: {updatedComet.getFriendlyName()}"
@@ -150,6 +150,14 @@ def updateAndCheckNotifications():
         title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
         description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and may be visible with binoculars."
         color = 0xABAB00
+        send_discord_comet_notification(title, description, color, comet)
+
+    for comet in cometList.suddenincrease:
+        print(f"Sudden brightening found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
+
+        title = f"🌟 Comet brightening: {comet.getFriendlyName()}"
+        description = f"The comet's 2 day average magnitude has suddenly brightened to {comet.mag2davg}!"
+        color = 0xFF8000
         send_discord_comet_notification(title, description, color, comet)
 
     cometList.saveCsv(CSV_FILE)
