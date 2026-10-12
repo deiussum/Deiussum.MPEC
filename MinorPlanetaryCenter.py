@@ -1,4 +1,5 @@
 import math
+import re
 from datetime import datetime, timedelta, timezone
 from typing import List
 import requests
@@ -67,6 +68,18 @@ class DesignationBuilder:
             designationIndex += 1
 
         return self.letters[designationIndex]
+
+    def GetHalfMonthStart(self, designation: str) -> datetime:
+        """
+        Start of the half-month a provisional designation such as C/2026 S1
+        refers to, or None for other designations.
+        """
+        match = re.match(r'^[CP]/(\d{4}) ([A-Y])\d+$', designation)
+        if not match or match[2] not in self.letters:
+            return None
+
+        index = self.letters.index(match[2])
+        return datetime(int(match[1]), index // 2 + 1, 16 if index % 2 else 1, tzinfo=timezone.utc)
 
     def GetCometDesignationRange(self, forDate: datetime, startIndex: int, endIndex: int) -> List[str]:
         month_designation = self.GetMonthDesignation(forDate)

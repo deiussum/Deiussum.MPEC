@@ -92,6 +92,7 @@ def updateAndCheckNotifications():
     print(f"Loaded {len(cometList.comets)} previously known comets")
 
     cometList.loadRecentComets()
+    cometList.loadMissedComets()
     print(f"Found {len(cometList.added)} new comets")
     print(f"Updated {len(cometList.updated)} comets")
 

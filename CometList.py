@@ -6,7 +6,7 @@ from typing import List
 
 import pandas as pd
 from Comet import Comet
-from MinorPlanetaryCenter import CometElementsApi, DesignationIdentifierApi, DesignationBuilder, ObservationsApi
+from MinorPlanetaryCenter import CometElement, CometElementsApi, DesignationIdentifierApi, DesignationBuilder, ObservationsApi
 
 BINOC_MAGNITUDE=8
 NAKED_EYE_MAGNITUDE=6
@@ -20,6 +20,10 @@ ARCHIVE_AFTER_DAYS=90
 PERIHELION_PAST_DAYS=60
 PERIHELION_AHEAD_DAYS=120
 RETURNING_MAX_MAGNITUDE=14
+
+# Recent comets in CometEls.txt that loadRecentComets missed are added when
+# their designation's half-month started within this many days
+MISSED_LOOKBACK_DAYS=90
 
 
 class CometList:
@@ -37,6 +41,7 @@ class CometList:
         self.added = []
         self.updated = []
         self.returning = []
+        self.elements = None
         self.binoc = []
         self.nakedeye = []
         self.spectacular = []
@@ -122,15 +127,60 @@ class CometList:
                 self.comets.append(comet)
                 self.added.append(comet)
 
-    def loadReturningComets(self):
-        try:
-            elements = CometElementsApi().query()
-        except Exception as ex:
-            print(f"Error getting comet elements: {ex}")
+    def getCometElements(self) -> List[CometElement]:
+        # Downloaded once per run and shared by the checks that use it
+        if self.elements is None:
+            try:
+                self.elements = CometElementsApi().query()
+            except Exception as ex:
+                print(f"Error getting comet elements: {ex}")
+                self.elements = []
+
+        return self.elements
+
+    def loadMissedComets(self):
+        """
+        Backstop for loadRecentComets, which only guesses C/ designations
+        1-5 for the last two half-months. Catches recent C/ and P/ comets
+        announced late, numbered past 5, or periodic.
+        """
+        designationBuilder = DesignationBuilder()
+        cutoff = datetime.now(timezone.utc) - timedelta(days=MISSED_LOOKBACK_DAYS)
+
+        candidates = []
+        for element in self.getCometElements():
+            if element.isFragment:
+                continue
+
+            halfMonthStart = designationBuilder.GetHalfMonthStart(element.designation)
+            if not halfMonthStart or halfMonthStart < cutoff:
+                continue
+
+            if not self.findCometByDesignation(element.designation):
+                candidates.append(element.designation)
+
+        if not candidates:
             return
 
+        data = DesignationIdentifierApi().queryMultiple(candidates)
+
+        for row in data:
+            if row.found == 0 or self.findCometByDesignation(row.designation):
+                continue
+
+            comet = Comet({
+                'designation': row.designation,
+                'name': row.name,
+                'permid': row.permId,
+            })
+            comet.lastupdate = datetime.now(timezone.utc)
+
+            self.comets.append(comet)
+            self.added.append(comet)
+
+    def loadReturningComets(self):
         candidates = {}
-        for element in elements:
+        for element in self.getCometElements():
             if element.orbitType != 'P' or element.isFragment:
                 continue
 
@@ -310,6 +360,9 @@ if __name__ == '__main__':
 
     cometList.loadRecentComets()
     print(f"{len(cometList.comets)} comets loaded from recent")
+
+    cometList.loadMissedComets()
+    print(f"{len(cometList.comets)} comets after checking for missed comets")
 
     cometList.loadReturningComets()
     print(f"{len(cometList.returning)} returning periodic comets")
