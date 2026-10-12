@@ -26,3 +26,6 @@ else
     echo "RSS feed unchanged, skipping upload"
 fi
 
+# The CSV is rewritten every run, so always upload it along with the page
+scp index.html known_comets.csv deiussum@roguex.local:/var/www/comets.deiussum.com
+

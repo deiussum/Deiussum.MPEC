@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracked Comets</title>
+<link rel="alternate" type="application/rss+xml" title="Comet updates" href="comets.xml">
+<style>
+  :root {
+    --bg: #fff; --fg: #1a1a1a; --muted: #666; --border: #ddd; --stripe: #f6f6f6;
+    --link: #0b62c4; --binoc: #fff4cc; --nakedeye: #ffe0b3; --spectacular: #ffc9c9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --fg: #e6e6e6; --muted: #999; --border: #333; --stripe: #1a1d21;
+      --link: #6cb0ff; --binoc: #3a3418; --nakedeye: #47321a; --spectacular: #4a2222;
+    }
+  }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
+         font: 14px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 1.4em; margin: 0 0 8px; }
+  .controls { margin: 8px 0 12px; color: var(--muted); }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { cursor: pointer; user-select: none; }
+  th.sorted::after { content: " \25B4"; }
+  th.sorted.desc::after { content: " \25BE"; }
+  tbody tr:nth-child(even) { background: var(--stripe); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.binoc { background: var(--binoc) !important; }
+  tr.nakedeye { background: var(--nakedeye) !important; }
+  tr.spectacular { background: var(--spectacular) !important; }
+  tr.archived { color: var(--muted); }
+  a { color: var(--link); }
+  .legend span { display: inline-block; padding: 0 6px; margin-right: 6px; border-radius: 3px; }
+  #error { color: #c62828; }
+</style>
+</head>
+<body>
+<h1>Tracked Comets</h1>
+<div class="controls">
+  <a href="comets.xml">RSS feed</a>
+  &nbsp;·&nbsp;
+  <label><input type="checkbox" id="showArchived"> Show archived</label>
+  &nbsp;·&nbsp;
+  <span class="legend">
+    <span class="binoc" style="background:var(--binoc)">&le; 8 binoculars</span>
+    <span style="background:var(--nakedeye)">&le; 6 naked eye</span>
+    <span style="background:var(--spectacular)">&le; 2 spectacular</span>
+  </span>
+</div>
+<p id="error"></p>
+<div class="wrap">
+  <table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+</div>
+
+<script>
+// Thresholds mirror BINOC/NAKED_EYE/SPECTACULAR_MAGNITUDE in CometList.py
+const BINOC = 8, NAKED_EYE = 6, SPECTACULAR = 2;
+const CSV_PATH = 'known_comets.csv';
+
+const columns = [
+  { key: 'designation', label: 'Designation' },
+  { key: 'permid', label: 'Perm ID' },
+  { key: 'name', label: 'Name' },
+  { key: 'discoverer', label: 'Discoverer' },
+  { key: 'mag1davg', label: '1-day mag', num: true },
+  { key: 'mag2davg', label: '2-day mag', num: true },
+  { key: 'lastobs', label: 'Last observation (UTC)' },
+  { key: 'lastupdate', label: 'Last update (UTC)' },
+];
+
+let rows = [];
+let sortKey = 'mag1davg', sortDesc = false;
+
+function parseCsv(text) {
+  const records = [];
+  let field = '', record = [], quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { record.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      record.push(field); field = '';
+      if (record.some(f => f !== '')) records.push(record);
+      record = [];
+    } else field += c;
+  }
+  record.push(field);
+  if (record.some(f => f !== '')) records.push(record);
+
+  const [header, ...data] = records;
+  return data.map(r => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])));
+}
+
+function magClass(row) {
+  const mag = parseFloat(row.mag1davg);
+  if (isNaN(mag)) return '';
+  if (mag <= SPECTACULAR) return 'spectacular';
+  if (mag <= NAKED_EYE) return 'nakedeye';
+  if (mag <= BINOC) return 'binoc';
+  return '';
+}
+
+function compare(a, b, col) {
+  if (col.num) {
+    const x = parseFloat(a[col.key]), y = parseFloat(b[col.key]);
+    if (isNaN(x)) return 1;
+    if (isNaN(y)) return -1;
+    return x - y;
+  }
+  return a[col.key].localeCompare(b[col.key]);
+}
+
+function render() {
+  const head = document.getElementById('head');
+  head.innerHTML = '';
+  for (const col of columns) {
+    const th = document.createElement('th');
+    th.textContent = col.label;
+    if (col.key === sortKey) th.className = 'sorted' + (sortDesc ? ' desc' : '');
+    th.onclick = () => {
+      sortDesc = col.key === sortKey ? !sortDesc : false;
+      sortKey = col.key;
+      render();
+    };
+    head.appendChild(th);
+  }
+
+  const showArchived = document.getElementById('showArchived').checked;
+  const col = columns.find(c => c.key === sortKey);
+  const visible = rows
+    .filter(r => showArchived || r.archive !== 'True')
+    .sort((a, b) => (sortDesc ? -1 : 1) * compare(a, b, col));
+
+  const body = document.getElementById('body');
+  body.innerHTML = '';
+  for (const row of visible) {
+    const tr = document.createElement('tr');
+    tr.className = [magClass(row), row.archive === 'True' ? 'archived' : ''].join(' ').trim();
+    for (const c of columns) {
+      const td = document.createElement('td');
+      if (c.num) td.className = 'num';
+      if (c.key === 'designation') {
+        const a = document.createElement('a');
+        a.href = 'https://minorplanetcenter.net/db_search/show_object?object_id=' + encodeURIComponent(row.designation);
+        a.textContent = row.designation;
+        td.appendChild(a);
+      } else {
+        td.textContent = row[c.key];
+      }
+      tr.appendChild(td);
+    }
+    body.appendChild(tr);
+  }
+}
+
+document.getElementById('showArchived').onchange = render;
+
+fetch(CSV_PATH, { cache: 'no-store' })
+  .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
+  .then(text => { rows = parseCsv(text); render(); })
+  .catch(e => {
+    document.getElementById('error').textContent =
+      `Could not load ${CSV_PATH}: ${e.message}. The page must be served over HTTP next to the CSV.`;
+  });
+</script>
+</body>
+</html>
