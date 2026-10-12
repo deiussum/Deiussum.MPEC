@@ -27,7 +27,7 @@
   th.sorted::after { content: " \25B4"; }
   th.sorted.desc::after { content: " \25BE"; }
   tbody tr:nth-child(even) { background: var(--stripe); }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; width: 1%; }
   tr.binoc { background: var(--binoc) !important; }
   tr.nakedeye { background: var(--nakedeye) !important; }
   tr.spectacular { background: var(--spectacular) !important; }
@@ -127,7 +127,9 @@ function render() {
   for (const col of columns) {
     const th = document.createElement('th');
     th.textContent = col.label;
-    if (col.key === sortKey) th.className = 'sorted' + (sortDesc ? ' desc' : '');
+    if (col.num) th.classList.add('num');
+    if (col.key === sortKey) th.classList.add('sorted');
+    if (col.key === sortKey && sortDesc) th.classList.add('desc');
     th.onclick = () => {
       sortDesc = col.key === sortKey ? !sortDesc : false;
       sortKey = col.key;
