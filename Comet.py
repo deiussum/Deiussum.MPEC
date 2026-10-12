@@ -14,6 +14,11 @@ class Comet:
     lastobs: datetime
     lastupdate: datetime
     perihelion: datetime
+    closeapproach: datetime
+    closedist: float
+    peakdate: datetime
+    peakmag: float
+    ephemupdate: datetime
     archive: bool
 
     def __init__(self, comet: dict):
@@ -26,6 +31,11 @@ class Comet:
         self.lastobs = self.getDateTime(comet.get('lastobs', None))
         self.lastupdate = self.getDateTime(comet.get('lastupdate', None))
         self.perihelion = self.getDateTime(comet.get('perihelion', None))
+        self.closeapproach = self.getDateTime(comet.get('closeapproach', None))
+        self.closedist = self.getFloat(comet.get('closedist', None))
+        self.peakdate = self.getDateTime(comet.get('peakdate', None))
+        self.peakmag = self.getFloat(comet.get('peakmag', None))
+        self.ephemupdate = self.getDateTime(comet.get('ephemupdate', None))
         self.archive = self.getBool(comet.get('archive', False))
 
     def toDict(self) -> dict:
@@ -39,6 +49,11 @@ class Comet:
             'lastobs': self.formatDateTime(self.lastobs),
             'lastupdate': self.formatDateTime(self.lastupdate),
             'perihelion': self.formatDateTime(self.perihelion),
+            'closeapproach': self.formatDateTime(self.closeapproach),
+            'closedist': self.closedist,
+            'peakdate': self.formatDateTime(self.peakdate),
+            'peakmag': self.peakmag,
+            'ephemupdate': self.formatDateTime(self.ephemupdate),
             'archive': self.archive
         }
 

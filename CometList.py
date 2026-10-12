@@ -6,6 +6,7 @@ from typing import List
 
 import pandas as pd
 from Comet import Comet
+from Horizons import EphemerisSummary, HorizonsApi
 from MinorPlanetaryCenter import CometElement, CometElementsApi, DesignationIdentifierApi, DesignationBuilder, ObservationsApi
 
 BINOC_MAGNITUDE=8
@@ -24,6 +25,13 @@ RETURNING_MAX_MAGNITUDE=14
 # Recent comets in CometEls.txt that loadRecentComets missed are added when
 # their designation's half-month started within this many days
 MISSED_LOOKBACK_DAYS=90
+
+# Closest approach and predicted peak brightness come from a JPL Horizons
+# ephemeris covering EPHEMERIS_PAST_DAYS ago to EPHEMERIS_AHEAD_DAYS from now,
+# refreshed every EPHEMERIS_REFRESH_DAYS
+EPHEMERIS_PAST_DAYS=90
+EPHEMERIS_AHEAD_DAYS=365
+EPHEMERIS_REFRESH_DAYS=7
 
 
 class CometList:
@@ -69,6 +77,11 @@ class CometList:
                       'lastobs',
                       'lastupdate',
                       'perihelion',
+                      'closeapproach',
+                      'closedist',
+                      'peakdate',
+                      'peakmag',
+                      'ephemupdate',
                       'archive'
                       ]
 
@@ -331,6 +344,39 @@ class CometList:
             comet.lastupdate = datetime.now(timezone.utc)
 
 
+    def updateEphemerides(self):
+        print("Updating Horizons ephemerides for known comets")
+
+        horizonsApi = HorizonsApi()
+        now = datetime.now(timezone.utc)
+
+        for comet in self.comets:
+            if comet.archive:
+                continue
+
+            if comet.ephemupdate and comet.ephemupdate > now - timedelta(days=EPHEMERIS_REFRESH_DAYS):
+                continue
+
+            # Numbered comets are looked up by permid (e.g. 161P)
+            designation = comet.permid or comet.designation.removeprefix('(').removesuffix(')')
+
+            try:
+                rows = horizonsApi.queryEphemeris(designation,
+                                                  now - timedelta(days=EPHEMERIS_PAST_DAYS),
+                                                  now + timedelta(days=EPHEMERIS_AHEAD_DAYS))
+                summary = EphemerisSummary(rows)
+
+                comet.closeapproach = summary.closeApproach
+                comet.closedist = summary.closeDistance
+                comet.peakdate = summary.peakDate
+                comet.peakmag = summary.peakMagnitude
+                comet.ephemupdate = now
+            except Exception as ex:
+                print(f"Error getting ephemeris for {comet.designation}: {ex}")
+
+            # Pause before the next comet to avoid spamming the API
+            time.sleep(0.5)
+
     def averageMagnitude(self, obs: pd.DataFrame, since: datetime) -> float:
         if 'mag' not in obs.columns:
             return None
@@ -379,6 +425,7 @@ if __name__ == '__main__':
     cometList.updatePerihelionDates()
 
     cometList.updateObservationData()
+    cometList.updateEphemerides()
     cometList.archiveStaleComets()
 
     cometList.saveCsv('test.csv')

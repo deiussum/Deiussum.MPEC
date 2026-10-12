@@ -70,9 +70,13 @@ const columns = [
   { key: 'discoverer', label: 'Discoverer' },
   { key: 'mag1davg', label: '1-day mag', num: true },
   { key: 'mag2davg', label: '2-day mag', num: true },
+  { key: 'perihelion', label: 'Perihelion', date: true },
+  { key: 'closeapproach', label: 'Closest approach', date: true },
+  { key: 'closedist', label: 'Distance (AU)', num: true },
+  { key: 'peakdate', label: 'Predicted peak', date: true },
+  { key: 'peakmag', label: 'Peak mag', num: true },
   { key: 'lastobs', label: 'Last observation (UTC)' },
   { key: 'lastupdate', label: 'Last update (UTC)' },
-  { key: 'perihelion', label: 'Perihelion (UTC)' },
 ];
 
 let rows = [];
@@ -158,6 +162,8 @@ function render() {
         a.href = 'https://minorplanetcenter.net/db_search/show_object?object_id=' + encodeURIComponent(row.designation);
         a.textContent = row.designation;
         td.appendChild(a);
+      } else if (c.date) {
+        td.textContent = row[c.key].slice(0, 10);
       } else {
         td.textContent = row[c.key];
       }

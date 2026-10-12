@@ -139,6 +139,7 @@ def updateAndCheckNotifications():
     # Update the observation data and check for comets reaching certain
     # thresholds
     cometList.updateObservationData()
+    cometList.updateEphemerides()
 
     for comet in cometList.spectacular:
         print(f"Spectacular comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
