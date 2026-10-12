@@ -213,10 +213,6 @@ class CometList:
             if existingComets:
                 comet = existingComets[0]
 
-                if comet.perihelion != element.perihelion:
-                    comet.perihelion = element.perihelion
-                    comet.lastupdate = datetime.now(timezone.utc)
-
                 if comet.archive:
                     comet.archive = False
                     comet.lastupdate = datetime.now(timezone.utc)
@@ -227,11 +223,24 @@ class CometList:
                     'name': row.name,
                     'permid': row.permId,
                 })
-                comet.perihelion = element.perihelion
                 comet.lastupdate = datetime.now(timezone.utc)
 
                 self.comets.append(comet)
                 self.returning.append(comet)
+
+    def updatePerihelionDates(self):
+        """
+        Sets perihelion on every tracked comet found in CometEls.txt. Orbits
+        are refined often, so this doesn't touch lastupdate.
+        """
+        # Numbered comets are listed by permid (e.g. 12P, 3I), others by
+        # provisional designation
+        elements = { e.designation: e for e in self.getCometElements() if not e.isFragment }
+
+        for comet in self.comets:
+            element = elements.get(comet.permid) or elements.get(comet.designation)
+            if element:
+                comet.perihelion = element.perihelion
 
     def isNearPerihelion(self, perihelion: datetime) -> bool:
         if not perihelion:
@@ -366,6 +375,8 @@ if __name__ == '__main__':
 
     cometList.loadReturningComets()
     print(f"{len(cometList.returning)} returning periodic comets")
+
+    cometList.updatePerihelionDates()
 
     cometList.updateObservationData()
     cometList.archiveStaleComets()

@@ -49,6 +49,13 @@ def send_comet_notification(notifications: Notifications, title: str, descriptio
             "inline": True
         })
 
+    if comet_data.perihelion:
+        fields.append({
+            "name": "Perihelion",
+            "value": f"{comet_data.perihelion:%Y-%m-%d}",
+            "inline": True
+        })
+
     notifications.Send(title, description, color, fields, comet_link(comet_data))
 
 
@@ -98,6 +105,7 @@ def updateAndCheckNotifications():
 
     cometList.loadReturningComets()
     print(f"Found {len(cometList.returning)} returning periodic comets")
+    cometList.updatePerihelionDates()
     print(f"Total of {len(cometList.comets)} comets")
 
     for newComet in cometList.added:
