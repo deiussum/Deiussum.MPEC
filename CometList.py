@@ -7,31 +7,32 @@ from typing import List
 import pandas as pd
 from Comet import Comet
 from Horizons import EphemerisSummary, HorizonsApi
-from MinorPlanetaryCenter import CometElement, CometElementsApi, DesignationIdentifierApi, DesignationBuilder, ObservationsApi
+from MinorPlanetaryCenter import (CometElement, CometElementsApi, DesignationIdentifierApi, DesignationBuilder,
+                                  ObservationsApi)
 
-BINOC_MAGNITUDE=8
-NAKED_EYE_MAGNITUDE=6
-SPECTACULAR_MAGNITUDE=2
-SUDDEN_INCREASE_MAGNITUDE=1.5
-ARCHIVE_AFTER_DAYS=90
+BINOC_MAGNITUDE = 8
+NAKED_EYE_MAGNITUDE = 6
+SPECTACULAR_MAGNITUDE = 2
+SUDDEN_INCREASE_MAGNITUDE = 1.5
+ARCHIVE_AFTER_DAYS = 90
 
 # Periodic comets are tracked when their perihelion falls between
 # PERIHELION_PAST_DAYS ago and PERIHELION_AHEAD_DAYS from now, and their
 # estimated peak magnitude is at or below RETURNING_MAX_MAGNITUDE
-PERIHELION_PAST_DAYS=60
-PERIHELION_AHEAD_DAYS=120
-RETURNING_MAX_MAGNITUDE=14
+PERIHELION_PAST_DAYS = 60
+PERIHELION_AHEAD_DAYS = 120
+RETURNING_MAX_MAGNITUDE = 14
 
 # Recent comets in CometEls.txt that loadRecentComets missed are added when
 # their designation's half-month started within this many days
-MISSED_LOOKBACK_DAYS=90
+MISSED_LOOKBACK_DAYS = 90
 
 # Closest approach and predicted peak brightness come from a JPL Horizons
 # ephemeris covering EPHEMERIS_PAST_DAYS ago to EPHEMERIS_AHEAD_DAYS from now,
 # refreshed every EPHEMERIS_REFRESH_DAYS
-EPHEMERIS_PAST_DAYS=90
-EPHEMERIS_AHEAD_DAYS=365
-EPHEMERIS_REFRESH_DAYS=7
+EPHEMERIS_PAST_DAYS = 90
+EPHEMERIS_AHEAD_DAYS = 365
+EPHEMERIS_REFRESH_DAYS = 7
 
 
 class CometList:
@@ -248,14 +249,14 @@ class CometList:
         """
         # Numbered comets are listed by permid (e.g. 12P, 3I), others by
         # provisional designation
-        elements = { e.designation: e for e in self.getCometElements() if not e.isFragment }
+        elements = {e.designation: e for e in self.getCometElements() if not e.isFragment}
 
         for comet in self.comets:
             element = elements.get(comet.permid) or elements.get(comet.designation)
             if element:
                 comet.perihelion = element.perihelion
 
-    def isNearPerihelion(self, perihelion: datetime) -> bool:
+    def isNearPerihelion(self, perihelion: datetime | None) -> bool:
         if not perihelion:
             return False
 
@@ -273,9 +274,17 @@ class CometList:
             try:
                 obs = obsApi.query(comet.designation)
 
-                obs['obstime'] = pd.to_datetime(obs['obstime'], format='ISO8601')
+                # Wrapped in a Series/Timestamp so type checkers know what
+                # to_datetime and max() return
+                obsTimes = pd.Series(pd.to_datetime(obs['obstime'], format='ISO8601'))
+                obs['obstime'] = obsTimes
 
-                lastObservation = obs['obstime'].max()
+                lastObservation = pd.Timestamp(obsTimes.max())
+                if not isinstance(lastObservation, pd.Timestamp):
+                    # NaT when MPC returned no observations
+                    print(f"No observations for {comet.getFriendlyName()}")
+                    continue
+
                 lastObservation = lastObservation.replace(microsecond=0)
 
                 twoDays = lastObservation - timedelta(days=2)
@@ -343,7 +352,6 @@ class CometList:
             comet.archive = True
             comet.lastupdate = datetime.now(timezone.utc)
 
-
     def updateEphemerides(self):
         print("Updating Horizons ephemerides for known comets")
 
@@ -377,17 +385,18 @@ class CometList:
             # Pause before the next comet to avoid spamming the API
             time.sleep(0.5)
 
-    def averageMagnitude(self, obs: pd.DataFrame, since: datetime) -> float:
+    def averageMagnitude(self, obs: pd.DataFrame, since: datetime) -> float | None:
         if 'mag' not in obs.columns:
             return None
 
-        mags = pd.to_numeric(obs.loc[obs['obstime'] >= since, 'mag'], errors='coerce').dropna()
+        # Wrapped in a Series so type checkers know what to_numeric returns
+        mags = pd.Series(pd.to_numeric(obs.loc[obs['obstime'] >= since, 'mag'], errors='coerce')).dropna()
         if mags.empty:
             return None
 
         return round(float(mags.mean()), 2)
 
-    def checkMagnitudes(self, comet: Comet, priorMagnitude: float, newMagnitude: float):
+    def checkMagnitudes(self, comet: Comet, priorMagnitude: float | None, newMagnitude: float | None):
         if self.checkThreshold(SPECTACULAR_MAGNITUDE, priorMagnitude, newMagnitude):
             self.spectacular.append(comet)
         elif self.checkThreshold(NAKED_EYE_MAGNITUDE, priorMagnitude, newMagnitude):
@@ -395,15 +404,14 @@ class CometList:
         elif self.checkThreshold(BINOC_MAGNITUDE, priorMagnitude, newMagnitude):
             self.binoc.append(comet)
 
-    
-    def checkThreshold(self, threshold: float, priorMagnitude: float, newMagnitude: float) -> bool:
-        return priorMagnitude and newMagnitude and priorMagnitude > threshold and newMagnitude <= threshold
+    def checkThreshold(self, threshold: float, priorMagnitude: float | None, newMagnitude: float | None) -> bool:
+        return bool(priorMagnitude and newMagnitude and priorMagnitude > threshold and newMagnitude <= threshold)
 
     def addComet(self, comet: Comet):
         self.comets.append(comet)
 
     def findCometByDesignation(self, designation: str) -> List[Comet]:
-        matches = [ c for c in self.comets if c.designation == designation ]
+        matches = [c for c in self.comets if c.designation == designation]
         return matches
 
 
@@ -429,5 +437,3 @@ if __name__ == '__main__':
     cometList.archiveStaleComets()
 
     cometList.saveCsv('test.csv')
-
-

@@ -5,11 +5,11 @@ import requests
 
 class EphemerisRow:
     time: datetime
-    tmag: float
+    tmag: float | None
     r: float
     delta: float
 
-    def __init__(self, time: datetime, tmag: float, r: float, delta: float):
+    def __init__(self, time: datetime, tmag: float | None, r: float, delta: float):
         self.time = time
         self.tmag = tmag
         self.r = r
@@ -22,10 +22,10 @@ class EphemerisSummary:
     Each is None when it falls on the first or last day, since the real
     extreme is then outside the window.
     """
-    closeApproach: datetime
-    closeDistance: float
-    peakDate: datetime
-    peakMagnitude: float
+    closeApproach: datetime | None
+    closeDistance: float | None
+    peakDate: datetime | None
+    peakMagnitude: float | None
 
     def __init__(self, rows: List[EphemerisRow]):
         self.closeApproach = None
@@ -38,12 +38,12 @@ class EphemerisSummary:
             self.closeApproach = closest.time
             self.closeDistance = round(closest.delta, 3)
 
-        magnitudes = [row for row in rows if row.tmag is not None]
+        magnitudes = [(row.tmag, row) for row in rows if row.tmag is not None]
         if magnitudes:
-            brightest = min(magnitudes, key=lambda row: row.tmag)
+            tmag, brightest = min(magnitudes, key=lambda pair: pair[0])
             if self.isInside(rows, brightest):
                 self.peakDate = brightest.time
-                self.peakMagnitude = round(brightest.tmag, 1)
+                self.peakMagnitude = round(tmag, 1)
 
     def isInside(self, rows: List[EphemerisRow], row: EphemerisRow) -> bool:
         return row is not rows[0] and row is not rows[-1]

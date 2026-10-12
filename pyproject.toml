@@ -1,0 +1,4 @@
+[tool.basedpyright]
+# basedpyright's default "recommended" mode is much stricter than this
+# project's style; "standard" matches regular pyright
+typeCheckingMode = "standard"

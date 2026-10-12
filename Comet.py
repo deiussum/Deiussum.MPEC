@@ -9,16 +9,16 @@ class Comet:
     name: str
     permid: str
     discoverer: str
-    mag2davg: float
-    mag1davg: float
-    lastobs: datetime
-    lastupdate: datetime
-    perihelion: datetime
-    closeapproach: datetime
-    closedist: float
-    peakdate: datetime
-    peakmag: float
-    ephemupdate: datetime
+    mag2davg: float | None
+    mag1davg: float | None
+    lastobs: datetime | None
+    lastupdate: datetime | None
+    perihelion: datetime | None
+    closeapproach: datetime | None
+    closedist: float | None
+    peakdate: datetime | None
+    peakmag: float | None
+    ephemupdate: datetime | None
     archive: bool
 
     def __init__(self, comet: dict):
@@ -66,7 +66,7 @@ class Comet:
 
         return self.designation
 
-    def getFloat(self, val) -> float:
+    def getFloat(self, val) -> float | None:
         if val:
             return float(val)
         return None
@@ -77,12 +77,12 @@ class Comet:
             return val.strip().lower() == 'true'
         return bool(val)
 
-    def formatDateTime(self, val: datetime) -> str:
+    def formatDateTime(self, val: datetime | None) -> str:
         if val:
             return val.strftime(DATETIME_FORMAT)
         return ''
 
-    def getDateTime(self, val) -> datetime:
+    def getDateTime(self, val) -> datetime | None:
         if val:
             parsed = datetime.strptime(val, DATETIME_FORMAT)
             if parsed:

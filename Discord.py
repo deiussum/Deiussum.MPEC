@@ -2,6 +2,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
+
 class Discord:
 
     def __init__(self):
@@ -15,13 +16,14 @@ class Discord:
         webhook_data = {
             "embeds": [embed]
         }
-        
+
         try:
             response = requests.post(self.DISCORD_WEBHOOK_URL, json=webhook_data, timeout=10)
             response.raise_for_status()
             print("Discord notification sent")
         except requests.RequestException as e:
             print(f"Error sending Discord notification: {e}")
+
 
 if __name__ == "__main__":
     load_dotenv()
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     embed = {
         "title": "Test embed",
         "description": "Description for the test embed",
-        "fields": [ {
+        "fields": [{
                 "name": "Field 1",
                 "value": "Value 1",
                 "inline": True
@@ -42,8 +44,5 @@ if __name__ == "__main__":
 
         ],
         "color": 0x0000FF
-    }   
+    }
     test.SendEmbed(embed)
-    
-
-

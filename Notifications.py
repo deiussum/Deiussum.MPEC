@@ -22,7 +22,7 @@ class Notifications:
         if not self.discord and not self.rss:
             print("No notification targets configured. Set DISCORD_WEBHOOK_URL and/or RSS_FEED_PATH")
 
-    def Send(self, title: str, description: str, color: int, fields: List[dict], link: str = None):
+    def Send(self, title: str, description: str, color: int, fields: List[dict], link: str | None = None):
         if self.discord:
             embed = {
                 "title": title,

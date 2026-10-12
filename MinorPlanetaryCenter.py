@@ -3,8 +3,8 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import List
 import requests
-import json
 import pandas as pd
+
 
 class DesignationInfo:
     found: bool
@@ -33,17 +33,17 @@ class DesignationInfo:
         self.designation = designation['iau_designation']
         self.permId = designation['permid']
         self.packedPermId = designation['packed_permid']
-        self.packedPrimaryProvisionalDesignation= designation['packed_primary_provisional_designation']
-        self.packedSecondaryProvisionalDesignations= designation['packed_secondary_provisional_designations']
-        self.unpackedPrimaryProvisionalDesignation= designation['unpacked_primary_provisional_designation']
-        self.unpackedSecondaryProvisionalDesignations= designation['unpacked_secondary_provisional_designations']
+        self.packedPrimaryProvisionalDesignation = designation['packed_primary_provisional_designation']
+        self.packedSecondaryProvisionalDesignations = designation['packed_secondary_provisional_designations']
+        self.unpackedPrimaryProvisionalDesignation = designation['unpacked_primary_provisional_designation']
+        self.unpackedSecondaryProvisionalDesignations = designation['unpacked_secondary_provisional_designations']
         self.disambiguationList = designation['disambiguation_list']
 
     def toDict(self):
         return {
             'found': self.found,
             'objectType': self.objectType,
-            'object_type': [ self.objectType, self.objectTypeIndex ],
+            'object_type': [self.objectType, self.objectTypeIndex],
             'orbfit_name': self.orbfitName,
             'name': self.name,
             'iau_designation': self.designation,
@@ -59,7 +59,7 @@ class DesignationInfo:
 
 class DesignationBuilder:
     # All half-month letters (I and Z are skipped in MPC system)
-    letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 
+    letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M',
                'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
 
     def GetMonthDesignation(self, forDate: datetime) -> str:
@@ -69,7 +69,7 @@ class DesignationBuilder:
 
         return self.letters[designationIndex]
 
-    def GetHalfMonthStart(self, designation: str) -> datetime:
+    def GetHalfMonthStart(self, designation: str) -> datetime | None:
         """
         Start of the half-month a provisional designation such as C/2026 S1
         refers to, or None for other designations.
@@ -86,6 +86,7 @@ class DesignationBuilder:
 
         return [f"C/{forDate.year} {month_designation}{index}" for index in range(startIndex, endIndex + 1)]
 
+
 class DesignationIdentifierApi:
     baseUrl = "https://data.minorplanetcenter.net/api/query-identifier"
 
@@ -96,7 +97,7 @@ class DesignationIdentifierApi:
         return DesignationInfo(response.json())
 
     def queryMultiple(self, designations: List[str]) -> List[DesignationInfo]:
-        response = requests.get(self.baseUrl, json={ 'ids': designations })
+        response = requests.get(self.baseUrl, json={'ids': designations})
         response.raise_for_status()
 
         results = []
@@ -116,8 +117,8 @@ class CometElement:
     isFragment: bool
     perihelion: datetime
     q: float
-    H: float
-    K: float
+    H: float | None
+    K: float | None
 
     def __init__(self, line: str):
         number = line[0:4].strip()
@@ -144,7 +145,7 @@ class CometElement:
         self.H = float(H) if H else None
         self.K = float(K) if K else None
 
-    def estimatedPeakMagnitude(self) -> float:
+    def estimatedPeakMagnitude(self) -> float | None:
         """
         Rough magnitude at perihelion, assuming the comet is 1 AU from Earth.
         Only good for ranking comets, not for predicting what will be seen.
@@ -181,25 +182,24 @@ class ObservationsApi:
     def query(self, designation: str) -> pd.DataFrame:
         cleanedDesignation = designation.removeprefix('(').removesuffix(')')
 
-        json = { 'desigs': [ cleanedDesignation ], 'output_format': [ 'ADES_DF' ] }
+        json = {'desigs': [cleanedDesignation], 'output_format': ['ADES_DF']}
         response = requests.get(self.baseUrl, json=json)
-        
+
         response.raise_for_status()
 
         data = pd.DataFrame(response.json()[0]['ADES_DF'])
         return data
-            
+
     def queryObs80(self, designation: str) -> str:
         cleanedDesignation = designation.removeprefix('(').removesuffix(')')
 
-        json = { 'desigs': [ cleanedDesignation ], 'output_format': [ 'OBS80' ] }
+        json = {'desigs': [cleanedDesignation], 'output_format': ['OBS80']}
         response = requests.get(self.baseUrl, json=json)
-        
+
         response.raise_for_status()
 
         data = response.json()[0]['OBS80']
         return data
-
 
 
 if __name__ == "__main__":

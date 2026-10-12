@@ -35,7 +35,7 @@ class Rss:
         except ET.ParseError as e:
             print(f"Error reading RSS feed, starting a new one: {e}")
 
-    def AddItem(self, title: str, description: str, link: str = None):
+    def AddItem(self, title: str, description: str, link: str | None = None):
         now = datetime.now(timezone.utc)
 
         item = ET.Element('item')

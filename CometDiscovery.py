@@ -14,12 +14,14 @@ from Notifications import Notifications
 # Configuration
 CSV_FILE = "known_comets.csv"
 
+
 def get_recent_comets() -> CometList:
     recentComets = CometList()
 
     recentComets.loadRecentComets()
 
     return recentComets
+
 
 def load_known_comets() -> CometList:
     knownComets = CometList()
@@ -28,8 +30,10 @@ def load_known_comets() -> CometList:
 
     return knownComets
 
+
 def comet_link(comet: Comet) -> str:
     return f"https://minorplanetcenter.net/db_search/show_object?object_id={quote_plus(comet.designation)}"
+
 
 def send_comet_notification(notifications: Notifications, title: str, description: str, color, comet_data: Comet):
     fields = []
@@ -89,6 +93,7 @@ def summarize(send: bool):
         print(description)
         for field in fields:
             print(f"  {field['name']}: {field['value']}")
+
 
 def updateAndCheckNotifications():
     print(f"Checking for new comets at {datetime.now()}")
@@ -153,7 +158,8 @@ def updateAndCheckNotifications():
         print(f"Naked eye comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
 
         title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
-        description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and may be nearly visible with the naked eye!"
+        description = (f"The comet's magnitude has a 2 day average of {comet.mag2davg} "
+                       "and may be nearly visible with the naked eye!")
         color = 0xFFFF00
         send_comet_notification(notifications, title, description, color, comet)
 
@@ -161,7 +167,8 @@ def updateAndCheckNotifications():
         print(f"Binocular comet found: {comet.designation}, 2 day Mag average: {comet.mag2davg}")
 
         title = f"🌟 Comet magnitude change: {comet.getFriendlyName()}"
-        description = f"The comet's magnitude has a 2 day average of {comet.mag2davg} and may be visible with binoculars."
+        description = (f"The comet's magnitude has a 2 day average of {comet.mag2davg} "
+                       "and may be visible with binoculars.")
         color = 0xABAB00
         send_comet_notification(notifications, title, description, color, comet)
 
@@ -178,9 +185,11 @@ def updateAndCheckNotifications():
     notifications.Save()
     cometList.saveCsv(CSV_FILE)
 
+
 def main():
     load_dotenv()
-    parser = argparse.ArgumentParser('A script for checking on Comet data and sending notifications to Discord and/or an RSS feed')
+    parser = argparse.ArgumentParser(
+        'A script for checking on Comet data and sending notifications to Discord and/or an RSS feed')
 
     parser.add_argument('--summarize', action='store_true', help='If set, the output will be summarized')
     parser.add_argument('--skipsend', action='store_true', help='If set, print the summary instead of sending it')
