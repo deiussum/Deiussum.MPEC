@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import math
+from datetime import datetime, timedelta, timezone
 from typing import List
 import requests
 import json
@@ -91,6 +92,74 @@ class DesignationIdentifierApi:
             results.append(DesignationInfo(data[row]))
 
         return results
+
+
+class CometElement:
+    """
+    One line of MPC's CometEls.txt, in MPC's one-line comet orbit format.
+    """
+    orbitType: str
+    designation: str
+    isFragment: bool
+    perihelion: datetime
+    q: float
+    H: float
+    K: float
+
+    def __init__(self, line: str):
+        number = line[0:4].strip()
+        provisional = line[5:12].strip()
+
+        self.orbitType = line[4]
+        self.isFragment = bool(number and provisional)
+
+        # Numbered comets are queried by number alone (e.g. 12P), others by
+        # their provisional designation (e.g. P/2026 N2)
+        if number:
+            self.designation = f"{int(number)}{self.orbitType}"
+        else:
+            self.designation = line[102:158].split(' (')[0].strip()
+
+        day = float(line[22:29])
+        perihelion = datetime(int(line[14:18]), int(line[19:21]), 1, tzinfo=timezone.utc) + timedelta(days=day - 1)
+        # Match the whole-second precision perihelion is saved with in the CSV
+        self.perihelion = perihelion.replace(microsecond=0)
+        self.q = float(line[30:39])
+
+        H = line[91:95].strip()
+        K = line[96:100].strip()
+        self.H = float(H) if H else None
+        self.K = float(K) if K else None
+
+    def estimatedPeakMagnitude(self) -> float:
+        """
+        Rough magnitude at perihelion, assuming the comet is 1 AU from Earth.
+        Only good for ranking comets, not for predicting what will be seen.
+        """
+        if self.H is None or self.K is None:
+            return None
+
+        return self.H + 2.5 * self.K * math.log10(self.q)
+
+
+class CometElementsApi:
+    url = 'https://www.minorplanetcenter.net/iau/MPCORB/CometEls.txt'
+
+    def query(self) -> List[CometElement]:
+        response = requests.get(self.url)
+        response.raise_for_status()
+
+        elements = []
+        for line in response.text.splitlines():
+            if not line.strip():
+                continue
+
+            try:
+                elements.append(CometElement(line))
+            except ValueError as e:
+                print(f"Skipping unreadable comet element line: {line!r} ({e})")
+
+        return elements
 
 
 class ObservationsApi:

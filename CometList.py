@@ -6,7 +6,7 @@ from typing import List
 
 import pandas as pd
 from Comet import Comet
-from MinorPlanetaryCenter import DesignationIdentifierApi, DesignationBuilder, ObservationsApi
+from MinorPlanetaryCenter import CometElementsApi, DesignationIdentifierApi, DesignationBuilder, ObservationsApi
 
 BINOC_MAGNITUDE=8
 NAKED_EYE_MAGNITUDE=6
@@ -14,11 +14,19 @@ SPECTACULAR_MAGNITUDE=2
 SUDDEN_INCREASE_MAGNITUDE=1.5
 ARCHIVE_AFTER_DAYS=90
 
+# Periodic comets are tracked when their perihelion falls between
+# PERIHELION_PAST_DAYS ago and PERIHELION_AHEAD_DAYS from now, and their
+# estimated peak magnitude is at or below RETURNING_MAX_MAGNITUDE
+PERIHELION_PAST_DAYS=60
+PERIHELION_AHEAD_DAYS=120
+RETURNING_MAX_MAGNITUDE=14
+
 
 class CometList:
     comets: List[Comet]
     added: List[Comet]
     updated: List[Comet]
+    returning: List[Comet]
     binoc: List[Comet]
     nakedeye: List[Comet]
     spectacular: List[Comet]
@@ -28,6 +36,7 @@ class CometList:
         self.comets = []
         self.added = []
         self.updated = []
+        self.returning = []
         self.binoc = []
         self.nakedeye = []
         self.spectacular = []
@@ -54,6 +63,7 @@ class CometList:
                       'mag2davg',
                       'lastobs',
                       'lastupdate',
+                      'perihelion',
                       'archive'
                       ]
 
@@ -112,6 +122,74 @@ class CometList:
                 self.comets.append(comet)
                 self.added.append(comet)
 
+    def loadReturningComets(self):
+        try:
+            elements = CometElementsApi().query()
+        except Exception as ex:
+            print(f"Error getting comet elements: {ex}")
+            return
+
+        candidates = {}
+        for element in elements:
+            if element.orbitType != 'P' or element.isFragment:
+                continue
+
+            if not self.isNearPerihelion(element.perihelion):
+                continue
+
+            peak = element.estimatedPeakMagnitude()
+            if peak is None or peak > RETURNING_MAX_MAGNITUDE:
+                continue
+
+            candidates[element.designation] = element
+
+        if not candidates:
+            return
+
+        data = DesignationIdentifierApi().queryMultiple(list(candidates))
+
+        for row in data:
+            if row.found == 0:
+                continue
+
+            # Numbered comets were queried as their permid (e.g. 12P), others
+            # by their designation
+            element = candidates.get(row.permId) or candidates.get(row.designation)
+            if not element:
+                continue
+
+            existingComets = self.findCometByDesignation(row.designation)
+
+            if existingComets:
+                comet = existingComets[0]
+
+                if comet.perihelion != element.perihelion:
+                    comet.perihelion = element.perihelion
+                    comet.lastupdate = datetime.now(timezone.utc)
+
+                if comet.archive:
+                    comet.archive = False
+                    comet.lastupdate = datetime.now(timezone.utc)
+                    self.returning.append(comet)
+            else:
+                comet = Comet({
+                    'designation': row.designation,
+                    'name': row.name,
+                    'permid': row.permId,
+                })
+                comet.perihelion = element.perihelion
+                comet.lastupdate = datetime.now(timezone.utc)
+
+                self.comets.append(comet)
+                self.returning.append(comet)
+
+    def isNearPerihelion(self, perihelion: datetime) -> bool:
+        if not perihelion:
+            return False
+
+        now = datetime.now(timezone.utc)
+        return now - timedelta(days=PERIHELION_PAST_DAYS) <= perihelion <= now + timedelta(days=PERIHELION_AHEAD_DAYS)
+
     def updateObservationData(self):
         print("Updating observation data for known comets")
 
@@ -137,39 +215,37 @@ class CometList:
 
                 comet.lastobs = lastObservation
 
-                twoDayData = obs[obs['obstime'] >= twoDays].copy()
-                twoDayData['mag'] = pd.to_numeric(twoDayData['mag'], errors='coerce')
+                # Averages are None when no observation in the window reports
+                # a magnitude, e.g. astrometry-only SOHO observations
+                twoDayAvg = self.averageMagnitude(obs, twoDays)
+                mag2delta = 0
 
-                # print(twoDayData['mag'])
+                if twoDayAvg is not None:
+                    self.checkMagnitudes(comet, comet.mag2davg, twoDayAvg)
 
-                twoDayAvg = twoDayData['mag'].dropna().mean().round(2)
+                    if comet.mag2davg:
+                        mag2delta = comet.mag2davg - twoDayAvg
 
-                self.checkMagnitudes(comet, comet.mag2davg, twoDayAvg)
+                        # Only a change from a prior average counts as a sudden increase
+                        if mag2delta >= SUDDEN_INCREASE_MAGNITUDE:
+                            self.suddenincrease.append(comet)
+                    else:
+                        mag2delta = twoDayAvg
 
-                if comet.mag2davg:
-                    mag2delta = comet.mag2davg - twoDayAvg
+                    if mag2delta != 0:
+                        comet.mag2davg = twoDayAvg
 
-                    # Only a change from a prior average counts as a sudden increase
-                    if mag2delta >= SUDDEN_INCREASE_MAGNITUDE:
-                        self.suddenincrease.append(comet)
-                else:
-                    mag2delta = twoDayAvg
+                oneDayAvg = self.averageMagnitude(obs, oneDay)
+                mag1delta = 0
 
-                if mag2delta != 0:
-                    comet.mag2davg = twoDayAvg
+                if oneDayAvg is not None:
+                    if comet.mag1davg:
+                        mag1delta = comet.mag1davg - oneDayAvg
+                    else:
+                        mag1delta = oneDayAvg
 
-                oneDayData = obs[obs['obstime'] >= oneDay].copy()
-                oneDayData['mag'] = pd.to_numeric(oneDayData['mag'], errors='coerce')
-
-                oneDayAvg = oneDayData['mag'].dropna().mean().round(2)
-
-                if comet.mag1davg:
-                    mag1delta = comet.mag1davg - oneDayAvg
-                else:
-                    mag1delta = oneDayAvg
-
-                if mag1delta != 0:
-                    comet.mag1davg = oneDayAvg
+                    if mag1delta != 0:
+                        comet.mag1davg = oneDayAvg
 
                 if mag1delta != 0 or mag2delta != 0:
                     comet.lastupdate = datetime.now(timezone.utc)
@@ -186,10 +262,25 @@ class CometList:
             if comet.archive or not comet.lastobs or comet.lastobs >= cutoff:
                 continue
 
+            # A returning periodic comet's last observation is from its
+            # previous apparition until it is recovered
+            if self.isNearPerihelion(comet.perihelion):
+                continue
+
             print(f"Archiving {comet.getFriendlyName()}, last observed {comet.lastobs}")
             comet.archive = True
             comet.lastupdate = datetime.now(timezone.utc)
 
+
+    def averageMagnitude(self, obs: pd.DataFrame, since: datetime) -> float:
+        if 'mag' not in obs.columns:
+            return None
+
+        mags = pd.to_numeric(obs.loc[obs['obstime'] >= since, 'mag'], errors='coerce').dropna()
+        if mags.empty:
+            return None
+
+        return round(float(mags.mean()), 2)
 
     def checkMagnitudes(self, comet: Comet, priorMagnitude: float, newMagnitude: float):
         if self.checkThreshold(SPECTACULAR_MAGNITUDE, priorMagnitude, newMagnitude):
@@ -219,6 +310,9 @@ if __name__ == '__main__':
 
     cometList.loadRecentComets()
     print(f"{len(cometList.comets)} comets loaded from recent")
+
+    cometList.loadReturningComets()
+    print(f"{len(cometList.returning)} returning periodic comets")
 
     cometList.updateObservationData()
     cometList.archiveStaleComets()

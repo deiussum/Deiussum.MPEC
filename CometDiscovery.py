@@ -94,6 +94,9 @@ def updateAndCheckNotifications():
     cometList.loadRecentComets()
     print(f"Found {len(cometList.added)} new comets")
     print(f"Updated {len(cometList.updated)} comets")
+
+    cometList.loadReturningComets()
+    print(f"Found {len(cometList.returning)} returning periodic comets")
     print(f"Total of {len(cometList.comets)} comets")
 
     for newComet in cometList.added:
@@ -115,6 +118,14 @@ def updateAndCheckNotifications():
                                 description,
                                 color,
                                 updatedComet)
+
+    for returningComet in cometList.returning:
+        print(f"Returning comet: {returningComet.designation}, perihelion {returningComet.perihelion}")
+
+        title = f"☄️ Periodic comet returning: {returningComet.getFriendlyName()}"
+        description = f"A periodic comet reaches perihelion on {returningComet.perihelion:%Y-%m-%d}."
+        color = 0x00FFFF
+        send_comet_notification(notifications, title, description, color, returningComet)
 
     # Update the observation data and check for comets reaching certain
     # thresholds

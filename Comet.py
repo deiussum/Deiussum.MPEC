@@ -13,6 +13,7 @@ class Comet:
     mag1davg: float
     lastobs: datetime
     lastupdate: datetime
+    perihelion: datetime
     archive: bool
 
     def __init__(self, comet: dict):
@@ -24,6 +25,7 @@ class Comet:
         self.mag1davg = self.getFloat(comet.get('mag1davg', None))
         self.lastobs = self.getDateTime(comet.get('lastobs', None))
         self.lastupdate = self.getDateTime(comet.get('lastupdate', None))
+        self.perihelion = self.getDateTime(comet.get('perihelion', None))
         self.archive = self.getBool(comet.get('archive', False))
 
     def toDict(self) -> dict:
@@ -36,6 +38,7 @@ class Comet:
             'mag1davg': self.mag1davg,
             'lastobs': self.formatDateTime(self.lastobs),
             'lastupdate': self.formatDateTime(self.lastupdate),
+            'perihelion': self.formatDateTime(self.perihelion),
             'archive': self.archive
         }
 
