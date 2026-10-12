@@ -34,4 +34,4 @@ Each module has an `if __name__ == "__main__":` block used for manual testing. R
 
 ## CSV state
 
-`known_comets.csv` is the live state file and is committed to the repo. Columns are defined in `CometList.saveCsv`; when you add a field, update `Comet.__init__`, `Comet.toDict`, and that `fieldnames` list together. Comets are archived by hand by setting `archive` to `True` in the CSV.
+`known_comets.csv` is the live state file and is committed to the repo. Columns are defined in `CometList.saveCsv`; when you add a field, update `Comet.__init__`, `Comet.toDict`, and that `fieldnames` list together. `archiveStaleComets()` sets `archive` to `True` once a comet's last observation is older than `ARCHIVE_AFTER_DAYS`; comets can also be archived by hand in the CSV. Archived comets are skipped by `updateObservationData()` and the summary.

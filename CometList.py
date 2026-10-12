@@ -12,6 +12,7 @@ BINOC_MAGNITUDE=8
 NAKED_EYE_MAGNITUDE=6
 SPECTACULAR_MAGNITUDE=2
 SUDDEN_INCREASE_MAGNITUDE=1.5
+ARCHIVE_AFTER_DAYS=90
 
 
 class CometList:
@@ -116,6 +117,9 @@ class CometList:
 
         obsApi = ObservationsApi()
         for comet in self.comets:
+            if comet.archive:
+                continue
+
             try:
                 obs = obsApi.query(comet.designation)
 
@@ -175,6 +179,17 @@ class CometList:
             except Exception as ex:
                 print(f"Error getting observations for {comet.designation}: {ex}")
 
+    def archiveStaleComets(self):
+        cutoff = datetime.now(timezone.utc) - timedelta(days=ARCHIVE_AFTER_DAYS)
+
+        for comet in self.comets:
+            if comet.archive or not comet.lastobs or comet.lastobs >= cutoff:
+                continue
+
+            print(f"Archiving {comet.getFriendlyName()}, last observed {comet.lastobs}")
+            comet.archive = True
+            comet.lastupdate = datetime.now(timezone.utc)
+
 
     def checkMagnitudes(self, comet: Comet, priorMagnitude: float, newMagnitude: float):
         if self.checkThreshold(SPECTACULAR_MAGNITUDE, priorMagnitude, newMagnitude):
@@ -206,6 +221,7 @@ if __name__ == '__main__':
     print(f"{len(cometList.comets)} comets loaded from recent")
 
     cometList.updateObservationData()
+    cometList.archiveStaleComets()
 
     cometList.saveCsv('test.csv')
 

@@ -152,6 +152,8 @@ def updateAndCheckNotifications():
         color = 0xFF8000
         send_comet_notification(notifications, title, description, color, comet)
 
+    cometList.archiveStaleComets()
+
     notifications.Save()
     cometList.saveCsv(CSV_FILE)
 
