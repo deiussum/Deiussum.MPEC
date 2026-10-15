@@ -7,35 +7,50 @@
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="alternate" type="application/rss+xml" title="Comet updates" href="comets.xml">
 <style>
+  /* Kanagawa palette (rebelot/kanagawa.nvim): Lotus for light, Wave for dark */
   :root {
-    --bg: #fff; --fg: #1a1a1a; --muted: #666; --border: #ddd; --stripe: #f6f6f6;
-    --link: #0b62c4; --binoc: #fff4cc; --nakedeye: #ffe0b3; --spectacular: #ffc9c9;
+    --bg: #f2ecbc; --surface: #e7dba0; --stripe: #e5ddb0; --border: #dcd5ac;
+    --fg: #545464; --muted: #8a8980; --heading: #4d699b; --link: #4d699b;
+    --accent: #624c83; --error: #c84053;
+    --yellow: #de9800; --orange: #cc6d00; --red: #c84053;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #121417; --fg: #e6e6e6; --muted: #999; --border: #333; --stripe: #1a1d21;
-      --link: #6cb0ff; --binoc: #3a3418; --nakedeye: #47321a; --spectacular: #4a2222;
+      --bg: #1f1f28; --surface: #2a2a37; --stripe: #252530; --border: #363646;
+      --fg: #dcd7ba; --muted: #727169; --heading: #7e9cd8; --link: #7fb4ca;
+      --accent: #957fb8; --error: #ff5d62;
+      --yellow: #e6c384; --orange: #ffa066; --red: #e46876;
     }
+  }
+  :root {
+    --binoc: color-mix(in srgb, var(--yellow) 22%, var(--bg));
+    --nakedeye: color-mix(in srgb, var(--orange) 26%, var(--bg));
+    --spectacular: color-mix(in srgb, var(--red) 30%, var(--bg));
   }
   body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg);
          font: 14px/1.4 system-ui, sans-serif; }
-  h1 { font-size: 1.4em; margin: 0 0 8px; }
+  h1 { font-size: 1.4em; margin: 0 0 8px; color: var(--heading); }
   .controls { margin: 8px 0 12px; color: var(--muted); }
-  .wrap { overflow-x: auto; }
+  .controls input { accent-color: var(--accent); }
+  .wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; }
   table { border-collapse: collapse; width: 100%; }
   th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-  th { cursor: pointer; user-select: none; }
+  th { cursor: pointer; user-select: none; background: var(--surface); color: var(--accent); font-weight: 600; }
+  th:hover { color: var(--fg); }
+  th.sorted { color: var(--heading); }
   th.sorted::after { content: " \25B4"; }
   th.sorted.desc::after { content: " \25BE"; }
+  tbody tr:last-child td { border-bottom: none; }
   tbody tr:nth-child(even) { background: var(--stripe); }
   .num { text-align: right; font-variant-numeric: tabular-nums; width: 1%; }
   tr.binoc { background: var(--binoc) !important; }
   tr.nakedeye { background: var(--nakedeye) !important; }
   tr.spectacular { background: var(--spectacular) !important; }
   tr.archived { color: var(--muted); }
-  a { color: var(--link); }
-  .legend span { display: inline-block; padding: 0 6px; margin-right: 6px; border-radius: 3px; }
-  #error { color: #c62828; }
+  a { color: var(--link); text-decoration-color: color-mix(in srgb, var(--link) 40%, transparent); }
+  a:hover { text-decoration-color: currentColor; }
+  .legend span { display: inline-block; padding: 0 6px; margin-right: 6px; border-radius: 3px; color: var(--fg); }
+  #error { color: var(--error); }
 </style>
 </head>
 <body>
