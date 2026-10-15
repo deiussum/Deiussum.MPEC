@@ -10,7 +10,7 @@ A Python script that tracks comets via the Minor Planet Center (MPC) API and sen
 
 There is no requirements file, build step, linter config, or test suite. Dependencies: `requests`, `pandas`, `python-dotenv`.
 
-Copy `.env.example` to `.env`. Each notification target is enabled by its own setting: `DISCORD_WEBHOOK_URL` for Discord and `RSS_FEED_PATH` for the RSS feed. Set either or both.
+Copy `.env.example` to `.env`. Each notification target is enabled by its own setting: `DISCORD_WEBHOOK_URL` for Discord and `RSS_FEED_PATH` for the RSS feed. Set either or both. `DEPLOY_TARGET` (an scp `user@host:/path`) makes `run.sh` upload the feed, `index.html` and the CSV; it reads it from the environment, which the systemd unit loads from `.env`.
 
 ```sh
 python CometDiscovery.py                         # update from MPC, send notifications, rewrite known_comets.csv

@@ -20,12 +20,18 @@ fi
 
 feed_mtime_after=$(stat -c %Y "$RSS_FEED_PATH" 2>/dev/null)
 
+# DEPLOY_TARGET is the scp destination (user@host:/path), set in .env
+if [ -z "$DEPLOY_TARGET" ]; then
+    echo "DEPLOY_TARGET not set, skipping upload"
+    exit 0
+fi
+
 if [ -n "$feed_mtime_after" ] && [ "$feed_mtime_after" != "$feed_mtime_before" ]; then
-    scp "$RSS_FEED_PATH" deiussum@roguex.local:/var/www/comets.deiussum.com
+    scp "$RSS_FEED_PATH" "$DEPLOY_TARGET"
 else
     echo "RSS feed unchanged, skipping upload"
 fi
 
 # The CSV is rewritten every run, so always upload it along with the page
-scp index.html known_comets.csv deiussum@roguex.local:/var/www/comets.deiussum.com
+scp index.html known_comets.csv "$DEPLOY_TARGET"
 
