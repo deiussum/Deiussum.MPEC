@@ -6,6 +6,13 @@
 <title>Tracked Comets</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="alternate" type="application/rss+xml" title="Comet updates" href="comets.xml">
+<script>
+// Apply a saved theme before the page renders, to avoid a flash of the other theme
+try {
+  const theme = localStorage.getItem('theme');
+  if (theme) document.documentElement.dataset.theme = theme;
+} catch (e) {}
+</script>
 <style>
   /* Kanagawa palette (rebelot/kanagawa.nvim): Lotus for light, Wave for dark */
   :root {
@@ -14,13 +21,20 @@
     --accent: #624c83; --error: #c84053;
     --yellow: #de9800; --orange: #cc6d00; --red: #c84053;
   }
+  /* data-theme is set by the toggle; without it the page follows the system setting */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #1f1f28; --surface: #2a2a37; --stripe: #252530; --border: #363646;
       --fg: #dcd7ba; --muted: #727169; --heading: #7e9cd8; --link: #7fb4ca;
       --accent: #957fb8; --error: #ff5d62;
       --yellow: #e6c384; --orange: #ffa066; --red: #e46876;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1f1f28; --surface: #2a2a37; --stripe: #252530; --border: #363646;
+    --fg: #dcd7ba; --muted: #727169; --heading: #7e9cd8; --link: #7fb4ca;
+    --accent: #957fb8; --error: #ff5d62;
+    --yellow: #e6c384; --orange: #ffa066; --red: #e46876;
   }
   :root {
     --binoc: color-mix(in srgb, var(--yellow) 22%, var(--bg));
@@ -51,10 +65,17 @@
   a:hover { text-decoration-color: currentColor; }
   .legend span { display: inline-block; padding: 0 6px; margin-right: 6px; border-radius: 3px; color: var(--fg); }
   #error { color: var(--error); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  #themeToggle { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--border);
+                 border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+  #themeToggle:hover { color: var(--heading); border-color: var(--heading); }
 </style>
 </head>
 <body>
-<h1>Tracked Comets</h1>
+<header>
+  <h1>Tracked Comets</h1>
+  <button id="themeToggle" type="button"></button>
+</header>
 <div class="controls">
   <a href="comets.xml">RSS feed</a>
   &nbsp;·&nbsp;
@@ -190,6 +211,28 @@ function render() {
 }
 
 document.getElementById('showArchived').onchange = render;
+
+const themeToggle = document.getElementById('themeToggle');
+const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || (systemDark.matches ? 'dark' : 'light');
+}
+
+function updateThemeToggle() {
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  themeToggle.textContent = next === 'dark' ? '\u263E Dark' : '\u2600 Light';
+  themeToggle.title = `Switch to ${next} mode`;
+}
+
+themeToggle.onclick = () => {
+  const theme = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem('theme', theme); } catch (e) {}
+  updateThemeToggle();
+};
+systemDark.addEventListener('change', updateThemeToggle);
+updateThemeToggle();
 
 fetch(CSV_PATH, { cache: 'no-store' })
   .then(r => { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.text(); })
