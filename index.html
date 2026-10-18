@@ -66,15 +66,20 @@ try {
   .legend span { display: inline-block; padding: 0 6px; margin-right: 6px; border-radius: 3px; color: var(--fg); }
   #error { color: var(--error); }
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  #themeToggle { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--border);
-                 border-radius: 6px; padding: 4px 10px; cursor: pointer; }
-  #themeToggle:hover { color: var(--heading); border-color: var(--heading); }
+  #themeToggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  #themeToggle button { font: inherit; color: var(--muted); background: var(--surface); border: none;
+                        padding: 4px 10px; cursor: pointer; }
+  #themeToggle button + button { border-left: 1px solid var(--border); }
+  #themeToggle button:hover { color: var(--heading); }
+  #themeToggle button[aria-pressed="true"] { color: var(--bg); background: var(--heading); cursor: default; }
 </style>
 </head>
 <body>
 <header>
   <h1>Tracked Comets</h1>
-  <button id="themeToggle" type="button"></button>
+  <div id="themeToggle" role="group" aria-label="Theme">
+    <button type="button" data-theme="light">&#x2600; Light</button><button type="button" data-theme="dark">&#x263E; Dark</button>
+  </div>
 </header>
 <div class="controls">
   <a href="comets.xml">RSS feed</a>
@@ -220,17 +225,18 @@ function currentTheme() {
 }
 
 function updateThemeToggle() {
-  const next = currentTheme() === 'dark' ? 'light' : 'dark';
-  themeToggle.textContent = next === 'dark' ? '\u263E Dark' : '\u2600 Light';
-  themeToggle.title = `Switch to ${next} mode`;
+  const theme = currentTheme();
+  for (const b of themeToggle.querySelectorAll('button'))
+    b.setAttribute('aria-pressed', b.dataset.theme === theme);
 }
 
-themeToggle.onclick = () => {
-  const theme = currentTheme() === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = theme;
-  try { localStorage.setItem('theme', theme); } catch (e) {}
-  updateThemeToggle();
-};
+for (const b of themeToggle.querySelectorAll('button')) {
+  b.onclick = () => {
+    document.documentElement.dataset.theme = b.dataset.theme;
+    try { localStorage.setItem('theme', b.dataset.theme); } catch (e) {}
+    updateThemeToggle();
+  };
+}
 systemDark.addEventListener('change', updateThemeToggle);
 updateThemeToggle();
 
